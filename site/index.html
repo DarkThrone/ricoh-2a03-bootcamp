@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Ricoh 2A03 CPU Emulator — Development Bootcamp</title>
+<title>NES Emulator — Development Bootcamp</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎮</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-/* ─── Tokens ─── */
 :root {
   --bg: #0f0f23; --panel: #16213e;
   --border: #e2e2e2; --border-dark: #4a4a4a;
@@ -20,42 +19,43 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { background: var(--bg); color: var(--text); font-family: var(--body); }
-
-/* ─── Scanlines ─── */
 body::after {
   content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
   background: repeating-linear-gradient(0deg, rgba(0,0,0,.15) 0px, rgba(0,0,0,.15) 1px, transparent 1px, transparent 3px);
 }
-
 #app { max-width: 780px; margin: 0 auto; padding: 20px; }
 
-/* ═══════════════════════════════════════════
-   CSS-only routing via :target + :has()
-   ═══════════════════════════════════════════ */
+/* ═══ CSS Routing ═══ */
 .page { display: none; scroll-margin-top: 0; }
-
-/* Show the targeted week page */
 .page:target { display: block; }
 
-/* Show home when NO week page is targeted */
-#app:not(:has(.week-page:target)) > #home { display: block; }
+/* Default: show landing when nothing targeted */
+#app:not(:has(.page:target)) > #landing { display: block; }
 
-/* ─── NES Buttons ─── */
+/* ═══ Buttons ═══ */
 .nes-btn {
-  display: inline-block;
-  background: transparent; color: var(--border); border: 2px solid var(--border);
-  padding: 4px 10px; font-family: var(--pixel); font-size: 8px;
-  cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
-  line-height: 1.6; text-decoration: none;
-  transition: transform .1s, box-shadow .1s;
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 8px rgba(255,255,255,.15);
-  }
+  display: inline-block; background: transparent; color: var(--border);
+  border: 2px solid var(--border); padding: 4px 10px; font-family: var(--pixel);
+  font-size: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+  line-height: 1.6; text-decoration: none; transition: transform .1s, box-shadow .1s;
+  &:hover { transform: scale(1.05); box-shadow: 0 0 8px rgba(255,255,255,.15); }
 }
 
-/* ─── Content Blocks ─── */
+/* ═══ Track selector buttons ═══ */
+.track-btn {
+  display: inline-block; padding: 10px 20px; font-family: var(--pixel);
+  font-size: 10px; text-decoration: none; text-transform: uppercase;
+  letter-spacing: 2px; border: 3px solid; transition: all .15s;
+  &:hover { transform: scale(1.04); }
+}
+.track-btn--cpu { color: var(--cyan); border-color: var(--cyan); }
+.track-btn--cpu:hover { background: var(--cyan); color: var(--bg); box-shadow: 0 0 20px rgba(51,204,204,.3); }
+.track-btn--ppu { color: var(--green); border-color: var(--green); }
+.track-btn--ppu:hover { background: var(--green); color: var(--bg); box-shadow: 0 0 20px rgba(51,204,51,.3); }
+.track-btn--apu { color: var(--orange); border-color: var(--orange); }
+.track-btn--apu:hover { background: var(--orange); color: var(--bg); box-shadow: 0 0 20px rgba(204,136,51,.3); }
+
+/* ═══ Content blocks ═══ */
 .block-h3 { color: var(--yellow); font-size: 11px; margin: 20px 0 10px; font-family: var(--pixel); line-height: 1.8; }
 .block-p { font-size: 14px; line-height: 1.8; margin: 8px 0; }
 .block-code {
@@ -74,84 +74,48 @@ body::after {
 .block-list { margin: 8px 0; padding-left: 20px; list-style: none; }
 .block-list li { font-size: 13px; line-height: 1.9; }
 .block-list li::before { content: '► '; color: var(--text-dim); }
-
-/* ─── Tables ─── */
 .block-table { overflow-x: auto; margin: 10px 0; }
 .block-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .block-table th {
   border: 1px solid var(--border-dark); padding: 8px 10px; text-align: left;
   background: #1a1a3e; color: var(--yellow); line-height: 1.8;
 }
-.block-table td {
-  border: 1px solid var(--border-dark); padding: 6px 10px; line-height: 1.8;
-}
+.block-table td { border: 1px solid var(--border-dark); padding: 6px 10px; line-height: 1.8; }
 .block-table tr:nth-child(even) td { background: #0a0a1a; }
 .block-table td:first-child { color: var(--cyan); }
 
-/* ─── Resource links ─── */
 .resource-link {
   display: block; color: var(--cyan); font-size: 12px;
-  margin-bottom: 8px; text-decoration: none; line-height: 2;
-  transition: color .15s;
-
+  margin-bottom: 8px; text-decoration: none; line-height: 2; transition: color .15s;
   &:hover { color: var(--white); }
   & .dim { color: var(--text-dim); }
-  & .arrow { color: var(--text-dim); font-size: 8px; }
 }
-
-/* ─── Week Cards ─── */
-.phase-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px;
-}
+.phase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
 .week-card {
   --c: var(--card-color, var(--cyan));
   display: block; background: var(--panel); padding: 12px 14px;
   text-align: left; text-decoration: none; color: inherit;
   border: 2px solid color-mix(in srgb, var(--c) 40%, transparent);
   transition: border-color .15s, box-shadow .15s;
-
-  &:hover {
-    border-color: var(--c);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--c) 20%, transparent);
-  }
+  &:hover { border-color: var(--c); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 20%, transparent); }
   & .wk-num { font-size: 8px; color: var(--text-dim); margin-bottom: 4px; }
   & .wk-title { font-size: 11px; color: var(--text); line-height: 1.8; }
 }
-
-/* ─── Week Page Header ─── */
 .week-header {
   --c: var(--card-color, var(--cyan));
   background: #0a0a1a; border: 3px solid var(--c); padding: 24px; margin-bottom: 20px;
-
-  & .phase-label {
-    font-size: 9px; font-family: var(--pixel); color: var(--c);
-    margin-bottom: 10px; letter-spacing: 2px;
-  }
-  & h2 {
-    font-family: var(--pixel); font-size: 14px; color: var(--white);
-    margin: 0; line-height: 1.8;
-  }
+  & .phase-label { font-size: 9px; font-family: var(--pixel); color: var(--c); margin-bottom: 10px; letter-spacing: 2px; }
+  & h2 { font-family: var(--pixel); font-size: 14px; color: var(--white); margin: 0; line-height: 1.8; }
 }
-
-/* ─── Resources box ─── */
 .resources-box {
   background: #0a0a1a; border: 2px solid var(--blue); padding: 16px; margin-top: 16px;
-
-  & h3 {
-    font-family: var(--pixel); font-size: 10px; color: var(--blue); margin: 0 0 12px;
-  }
+  & h3 { font-family: var(--pixel); font-size: 10px; color: var(--blue); margin: 0 0 12px; }
 }
-
-/* ─── Home header ─── */
 .hero {
   text-align: center; padding: 30px 16px; margin-bottom: 24px;
   background: linear-gradient(180deg, #1a1a3e, #0f0f23);
   border: 3px solid var(--red); position: relative; overflow: hidden;
-
-  &::before {
-    content: ''; position: absolute; inset: 0;
-    background: radial-gradient(ellipse at center, rgba(204,51,51,.08), transparent 70%);
-  }
+  &::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(204,51,51,.08), transparent 70%); }
   & > * { position: relative; }
   & .subtitle { font-family: var(--pixel); font-size: 9px; color: var(--red); letter-spacing: 4px; margin-bottom: 12px; }
   & h1 { font-family: var(--pixel); font-size: 18px; color: var(--white); margin: 0 0 8px; line-height: 1.8; text-shadow: 2px 2px 0 #cc333344; }
@@ -165,196 +129,132 @@ body::after {
 .phase-heading {
   font-family: var(--pixel); font-size: 10px; letter-spacing: 1px;
   margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
-
-  &::before {
-    content: ''; display: inline-block; width: 8px; height: 8px;
-    background: currentColor; flex-shrink: 0;
-  }
+  &::before { content: ''; display: inline-block; width: 8px; height: 8px; background: currentColor; flex-shrink: 0; }
 }
-.footer {
-  text-align: center; margin-top: 24px; padding-bottom: 8px;
-  font-family: var(--pixel); font-size: 8px; color: var(--text-dim); line-height: 2;
-}
-
-/* ─── Blink cursor ─── */
-@keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 .blink { animation: blink 1.06s step-end infinite; }
 </style>
 </head>
 <body>
 <div id="app">
-  <!-- Home page (visible by default via :has()) -->
-  <section id="home" class="page"></section>
-
-  <!-- Week pages injected here by the data stamper below -->
+  <section id="landing" class="page"></section>
 </div>
-
 <script>
-/* ═══════════════════════════════════════════════════
-   DATA — the only reason JS exists in this file.
-   Everything below just stamps HTML into the DOM once.
-   No event listeners. No state. No framework.
-   ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   DATA — JS stamps HTML once, then exits.
+   All interactivity is <a href="#id"> + CSS :target.
+   ═══════════════════════════════════════════ */
 
-const PHASES = [
-  { name: "Foundations", color: "cyan", weeks: [1,2,3] },
-  { name: "Instructions", color: "green", weeks: [4,5,6,7,8] },
-  { name: "Timing & Interrupts", color: "orange", weeks: [9,10,11] },
-  { name: "Integration", color: "magenta", weeks: [12,13,14,15,16] },
-];
-
-const W = {
-  1: { t:"Architecture Overview & Memory Map", ph:1, c:[
-    {y:"note",x:"2A03 = 6502 minus BCD mode — the only silicon difference that matters for us"},
-    {y:"h3",x:"Registers"},
-    {y:"list",x:["A, X, Y — 8-bit general purpose","SP — 8-bit stack pointer (hardwired to page $01)","PC — 16-bit program counter","P — status flags: N V - B D I Z C"]},
-    {y:"h3",x:"Memory Map"},
-    {y:"table",h:["Range","Size","Description"],r:[["$0000–$07FF","2KB","Internal RAM (mirrored ×4 to $1FFF)"],["$2000–$2007","8 bytes","PPU registers (mirrored to $3FFF)"],["$4000–$4017","24 bytes","APU & I/O registers"],["$4020–$FFFF","~48KB","Cartridge space (PRG-ROM, mapper)"]]},
-    {y:"h3",x:"Deliverable"},
-    {y:"p",x:"CPU struct/class with registers + Bus abstraction with read(u16) → u8 / write(u16, u8) backed by a flat 64KB array."},
-  ], l:[
-    ["NESDev Wiki — CPU Memory Map","https://www.nesdev.org/wiki/CPU_memory_map"],
-    ["6502 Register Overview","https://www.nesdev.org/wiki/CPU_registers"],
-    ["Easy 6502 — Interactive Tutorial","https://skilldrick.github.io/easy6502/"],
-  ]},
-  2: { t:"Addressing Modes", ph:1, c:[
-    {y:"h3",x:"All 13 Addressing Modes"},
-    {y:"table",h:["Mode","Syntax","Example"],r:[["Implicit","—","CLC"],["Accumulator","A","ASL A"],["Immediate","#v","LDA #$44"],["Zero Page","d","LDA $44"],["Zero Page,X","d,X","LDA $44,X"],["Zero Page,Y","d,Y","LDX $44,Y"],["Absolute","a","LDA $4400"],["Absolute,X","a,X","LDA $4400,X"],["Absolute,Y","a,Y","LDA $4400,Y"],["Indirect","(a)","JMP ($5597)"],["(Indirect,X)","(d,X)","LDA ($44,X)"],["(Indirect),Y","(d),Y","LDA ($44),Y"],["Relative","r","BEQ label"]]},
-    {y:"warn",x:"Page-boundary crossing on Absolute X/Y and (d),Y adds a cycle — track this now even if you don't use it yet."},
-    {y:"h3",x:"Deliverable"},
-    {y:"p",x:"resolve_address(mode) → u16 method, unit-tested with hand-crafted memory layouts."},
-  ], l:[
-    ["6502 Addressing Modes — NESDev","https://www.nesdev.org/wiki/CPU_addressing_modes"],
-    ["6502 Instruction Set — masswerk","https://www.masswerk.at/6502/6502_instruction_set.html"],
-  ]},
-  3: { t:"The Fetch-Decode-Execute Loop", ph:1, c:[
-    {y:"h3",x:"Core Loop"},
-    {y:"code",x:"fetch opcode at PC → decode → execute → advance PC"},
-    {y:"list",x:["Build 256-entry opcode dispatch table (fn pointers, match/switch, or enum dispatch)","Start with NOP ($EA) and illegal opcodes as no-ops","CPU ticks through memory, dispatches opcodes, PC advances correctly"]},
-    {y:"h3",x:"Deliverable"},
-    {y:"p",x:"CPU ticks through memory, dispatches opcodes, PC advances correctly."},
-  ], l:[
-    ["Opcode Matrix (all 256)","https://www.oxyron.de/html/opcodes02.html"],
-    ["NESDev — CPU Cycle Reference","https://www.nesdev.org/wiki/6502_cycle_times"],
-  ]},
-  4: { t:"Load/Store & Transfer", ph:2, c:[
-    {y:"h3",x:"Instructions"},
-    {y:"table",h:["Group","Opcodes"],r:[["Load","LDA, LDX, LDY"],["Store","STA, STX, STY"],["Transfer","TAX, TAY, TXA, TYA, TSX, TXS"]]},
-    {y:"note",x:"Update N and Z flags on every load/transfer — except TXS which sets no flags."},
-    {y:"h3",x:"Test"},
-    {y:"p",x:"Write a sequence that loads values, transfers between registers, stores to RAM, and reads back."},
-  ], l:[["6502 Instruction Reference","https://www.masswerk.at/6502/6502_instruction_set.html"]]},
-  5: { t:"Arithmetic & Logic", ph:2, c:[
-    {y:"h3",x:"Instructions"},
-    {y:"table",h:["Group","Opcodes"],r:[["Arithmetic","ADC, SBC (no BCD — skip D flag path)"],["Logic","AND, ORA, EOR, BIT"],["Compare","CMP, CPX, CPY"]]},
-    {y:"warn",x:"Get carry/overflow flag math right. V = (A ^ result) & (operand ^ result) & 0x80"},
-    {y:"h3",x:"Test Cases"},
-    {y:"list",x:["$7F + $01 — positive overflow","$80 - $01 — negative overflow","Signed boundary crossing edge cases"]},
-  ], l:[
-    ["6502 Overflow Flag Explained — righto.com","https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html"],
-    ["ADC/SBC Deep Dive","https://www.nesdev.org/wiki/CPU_ALL#ADC"],
-  ]},
-  6: { t:"Increment/Decrement & Shifts", ph:2, c:[
-    {y:"h3",x:"Instructions"},
-    {y:"table",h:["Group","Opcodes"],r:[["Inc/Dec Memory","INC, DEC"],["Inc/Dec Register","INX, INY, DEX, DEY"],["Shifts","ASL, LSR, ROL, ROR"]]},
-    {y:"note",x:"Shifts have both Accumulator and Memory variants — don't forget both."},
-    {y:"h3",x:"Deliverable"},
-    {y:"p",x:"All flag side-effects verified against reference."},
-  ], l:[["6502 Instruction Set","https://www.masswerk.at/6502/6502_instruction_set.html"]]},
-  7: { t:"Branches & Jumps", ph:2, c:[
-    {y:"h3",x:"Instructions"},
-    {y:"table",h:["Group","Opcodes"],r:[["Branches","BCC, BCS, BEQ, BNE, BMI, BPL, BVC, BVS"],["Jumps","JMP (absolute + indirect), JSR, RTS"]]},
-    {y:"warn",x:"JMP ($xxFF) — the infamous page-boundary bug. Wraps within the page, doesn't cross."},
-    {y:"warn",x:"JSR pushes PC - 1; RTS pops and adds 1."},
-    {y:"h3",x:"Test"},
-    {y:"p",x:"Simple loop that counts to 10 + subroutine call/return roundtrip."},
-  ], l:[
-    ["JMP Bug — NESDev","https://www.nesdev.org/wiki/Errata#CPU"],
-    ["6502 Branch Instructions","https://www.nesdev.org/wiki/CPU_ALL#Branch_Instructions"],
-  ]},
-  8: { t:"Stack & System", ph:2, c:[
-    {y:"h3",x:"Instructions"},
-    {y:"table",h:["Group","Opcodes"],r:[["Stack","PHA, PHP, PLA, PLP"],["System","BRK, RTI"],["Flag Set/Clear","SEC, CLC, SEI, CLI, SED, CLD, CLV"]]},
-    {y:"warn",x:"PHP/BRK quirk: bits 4 and 5 of pushed status byte are set (B flag + unused bit)."},
-    {y:"warn",x:"PLP quirk: bit 5 always restored as 1, bit 4 ignored on pull."},
-    {y:"h3",x:"Deliverable"},
-    {y:"p",x:"Full official opcode coverage — 56 instructions × addressing mode variants = 151 opcodes."},
-  ], l:[
-    ["Status Flags — NESDev","https://www.nesdev.org/wiki/Status_flags"],
-    ["CPU Stack Behavior","https://www.nesdev.org/wiki/Stack"],
-  ]},
-  9: { t:"Cycle Accuracy", ph:3, c:[
-    {y:"h3",x:"Cycle Counting"},
-    {y:"list",x:["Each instruction has a base cycle count — add a cycles counter to the CPU","+1 penalty for page-boundary crosses (Absolute X/Y, (d),Y, branches taken + crossing)","Build or import a cycle count table (all 256 entries)"]},
-    {y:"note",x:"PPU and APU are cycle-locked to the CPU — wrong counts = wrong frame timing."},
-  ], l:[
-    ["CPU Cycle Reference","https://www.nesdev.org/wiki/6502_cycle_times"],
-    ["Opcode Timing Table","https://www.oxyron.de/html/opcodes02.html"],
-  ]},
-  10: { t:"Interrupts — NMI, IRQ, RESET", ph:3, c:[
-    {y:"h3",x:"Interrupt Vectors"},
-    {y:"table",h:["Type","Vector","Behavior"],r:[["RESET","$FFFC–$FFFD","Load PC, set I flag, SP = $FD"],["NMI","$FFFA–$FFFB","Push PC + P (bit 4 clear), non-maskable"],["IRQ/BRK","$FFFE–$FFFF","Same as NMI but masked by I flag; BRK sets bit 4"]]},
-    {y:"note",x:"Interrupts are polled between instructions, not mid-instruction."},
-    {y:"h3",x:"Deliverable"},
-    {y:"p",x:"trigger_nmi(), trigger_irq(), reset() methods — CPU responds correctly to each."},
-  ], l:[["CPU Interrupts — NESDev","https://www.nesdev.org/wiki/CPU_interrupts"]]},
-  11: { t:"Run nestest.nes", ph:3, c:[
-    {y:"h3",x:"★ CRITICAL MILESTONE ★"},
-    {y:"p",x:"This is the single best validation checkpoint in the entire project."},
-    {y:"list",x:["Load nestest.nes (no PPU required, runs in automation mode at $C000)","Compare your CPU log output against the nestest golden log","Check: PC, A, X, Y, P, SP, cycle count per instruction","Fix every discrepancy before moving on"]},
-    {y:"warn",x:"Do NOT proceed to Phase 4 until nestest passes with zero log diff through all official opcodes."},
-  ], l:[
-    ["nestest ROM Download","https://www.nesdev.org/wiki/Emulator_tests"],
-    ["nestest Log Format","https://www.qmtpro.com/~nes/misc/nestest.log"],
-    ["nestest.nes Info — NESDev","https://www.nesdev.org/wiki/Emulator_tests#CPU"],
-  ]},
-  12: { t:"iNES ROM Loader", ph:4, c:[
-    {y:"h3",x:"iNES Header (16 bytes)"},
-    {y:"table",h:["Offset","Size","Content"],r:[["0–3","4 bytes","Magic: $4E $45 $53 $1A ('NES' + EOF)"],["4","1 byte","PRG-ROM size (×16KB)"],["5","1 byte","CHR-ROM size (×8KB)"],["6","1 byte","Flags 6: mapper low, mirroring, battery, trainer"],["7","1 byte","Flags 7: mapper high, VS/Playchoice, NES 2.0"]]},
-    {y:"h3",x:"Mapper 0 (NROM)"},
-    {y:"list",x:["Direct mapping of PRG-ROM to $8000–$FFFF","16KB: mirrored at $8000 and $C000","32KB: fills $8000–$FFFF"]},
-  ], l:[
-    ["iNES Format — NESDev","https://www.nesdev.org/wiki/INES"],
-    ["Mapper 0 — NROM","https://www.nesdev.org/wiki/NROM"],
-  ]},
-  13: { t:"Minimal PPU Stub & DMA", ph:4, c:[
-    {y:"h3",x:"PPU Register Stubs"},
-    {y:"list",x:["Implement reads/writes at $2000–$2007 (stubs returning open-bus values)","$2002 bit 7 (vblank flag) — toggle on a timer so games don't spin forever"]},
-    {y:"h3",x:"OAM DMA"},
-    {y:"p",x:"$4014 write triggers 256-byte copy from CPU page XX00–XXFF to OAM. Costs 513 cycles (514 on odd CPU cycle)."},
-  ], l:[
-    ["PPU Registers — NESDev","https://www.nesdev.org/wiki/PPU_registers"],
-    ["OAM DMA — NESDev","https://www.nesdev.org/wiki/PPU_OAM#DMA"],
-  ]},
-  14: { t:"Controller Input", ph:4, c:[
-    {y:"h3",x:"Controller Protocol"},
-    {y:"list",x:["Controller 1: $4016 / Controller 2: $4017","Write $01 then $00 to $4016 to strobe","Read 8 times to get button states"]},
-    {y:"h3",x:"Button Order"},
-    {y:"table",h:["Read #","Button"],r:[["1","A"],["2","B"],["3","Select"],["4","Start"],["5","Up"],["6","Down"],["7","Left"],["8","Right"]]},
-    {y:"p",x:"Wire to keyboard or gamepad input."},
-  ], l:[
-    ["Controller — NESDev","https://www.nesdev.org/wiki/Controller_reading"],
-    ["Standard Controller","https://www.nesdev.org/wiki/Standard_controller"],
-  ]},
-  15: { t:"Unofficial Opcodes", ph:4, c:[
-    {y:"note",x:"Optional but recommended — many NES games rely on these."},
-    {y:"h3",x:"Common Unofficial Opcodes"},
-    {y:"table",h:["Opcode","Description"],r:[["LAX","LDA + LDX simultaneously"],["SAX","Store A & X"],["DCP","DEC + CMP"],["ISB/ISC","INC + SBC"],["SLO","ASL + ORA"],["RLA","ROL + AND"],["SRE","LSR + EOR"],["RRA","ROR + ADC"]]},
-    {y:"p",x:"~26 commonly used undocumented opcodes total. Implementing them significantly widens ROM compatibility."},
-  ], l:[
-    ["Unofficial Opcodes — NESDev","https://www.nesdev.org/wiki/CPU_unofficial_opcodes"],
-    ["Full Unofficial Opcode Reference","https://www.oxyron.de/html/opcodes02.html"],
-  ]},
-  16: { t:"Debugging Infrastructure", ph:4, c:[
-    {y:"warn",x:"Not optional — you'll need this from Week 4 onward. Build it incrementally."},
-    {y:"h3",x:"Tools to Build"},
-    {y:"list",x:["Step debugger: step, breakpoint on PC / memory write, register watch","Disassembler: raw bytes → mnemonics for display","Memory viewer / hex dump","Cycle counter display"]},
-    {y:"h3",x:"Language Tips"},
-    {y:"table",h:["Language","Watch Out For"],r:[["Rust","Use wrapping_add / wrapping_sub — embrace the overflow checks"],["C++","uint8_t / uint16_t — beware implicit integer promotion"],["C#","byte / ushort — C# promotes to int aggressively"],["Java","No unsigned types — use & 0xFF / & 0xFFFF after every op"],["TypeScript","Bitwise ops coerce to 32-bit signed — mask with & 0xFF everywhere"]]},
-  ], l:[
-    ["Emulator Tests Collection","https://www.nesdev.org/wiki/Emulator_tests"],
-    ["NESDev Forum","https://forums.nesdev.org/"],
-  ]},
+const TRACKS = {
+  cpu: {
+    label: "CPU", chip: "Ricoh 2A03", subtitle: "MOS 6502 Core (minus BCD)",
+    color: "cyan", btnClass: "track-btn--cpu", duration: "16 weeks",
+    desc: "Build the heart of the NES — from registers and addressing modes to nestest validation, ROM loading, and controller input.",
+    milestone: { week: 11, text: "Week 11 — pass nestest.nes" },
+    phases: [
+      { name: "Foundations", color: "cyan", weeks: [1,2,3] },
+      { name: "Instructions", color: "green", weeks: [4,5,6,7,8] },
+      { name: "Timing & Interrupts", color: "orange", weeks: [9,10,11] },
+      { name: "Integration", color: "magenta", weeks: [12,13,14,15,16] },
+    ],
+    refs: [
+      ["NESDev Wiki — CPU","https://www.nesdev.org/wiki/CPU"],
+      ["6502 Instruction Set","https://www.masswerk.at/6502/6502_instruction_set.html"],
+      ["Emulator Tests","https://www.nesdev.org/wiki/Emulator_tests"],
+      ["Opcode Matrix (all 256)","https://www.oxyron.de/html/opcodes02.html"],
+      ["Easy 6502 Interactive","https://skilldrick.github.io/easy6502/"],
+    ],
+    weeks: {
+      1:{t:"Architecture Overview & Memory Map",ph:0,c:[{y:"note",x:"2A03 = 6502 minus BCD mode — the only silicon difference that matters for us"},{y:"h3",x:"Registers"},{y:"list",x:["A, X, Y — 8-bit general purpose","SP — 8-bit stack pointer (hardwired to page $01)","PC — 16-bit program counter","P — status flags: N V - B D I Z C"]},{y:"h3",x:"Memory Map"},{y:"table",h:["Range","Size","Description"],r:[["$0000–$07FF","2KB","Internal RAM (mirrored ×4 to $1FFF)"],["$2000–$2007","8 bytes","PPU registers (mirrored to $3FFF)"],["$4000–$4017","24 bytes","APU & I/O registers"],["$4020–$FFFF","~48KB","Cartridge space (PRG-ROM, mapper)"]]},{y:"h3",x:"Deliverable"},{y:"p",x:"CPU struct/class with registers + Bus abstraction with read(u16) → u8 / write(u16, u8) backed by a flat 64KB array."}],l:[["NESDev Wiki — CPU Memory Map","https://www.nesdev.org/wiki/CPU_memory_map"],["6502 Register Overview","https://www.nesdev.org/wiki/CPU_registers"],["Easy 6502 — Interactive Tutorial","https://skilldrick.github.io/easy6502/"]]},
+      2:{t:"Addressing Modes",ph:0,c:[{y:"h3",x:"All 13 Addressing Modes"},{y:"table",h:["Mode","Syntax","Example"],r:[["Implicit","—","CLC"],["Accumulator","A","ASL A"],["Immediate","#v","LDA #$44"],["Zero Page","d","LDA $44"],["Zero Page,X","d,X","LDA $44,X"],["Zero Page,Y","d,Y","LDX $44,Y"],["Absolute","a","LDA $4400"],["Absolute,X","a,X","LDA $4400,X"],["Absolute,Y","a,Y","LDA $4400,Y"],["Indirect","(a)","JMP ($5597)"],["(Indirect,X)","(d,X)","LDA ($44,X)"],["(Indirect),Y","(d),Y","LDA ($44),Y"],["Relative","r","BEQ label"]]},{y:"warn",x:"Page-boundary crossing on Absolute X/Y and (d),Y adds a cycle — track this now even if you don't use it yet."},{y:"h3",x:"Deliverable"},{y:"p",x:"resolve_address(mode) → u16 method, unit-tested with hand-crafted memory layouts."}],l:[["6502 Addressing Modes — NESDev","https://www.nesdev.org/wiki/CPU_addressing_modes"],["6502 Instruction Set — masswerk","https://www.masswerk.at/6502/6502_instruction_set.html"]]},
+      3:{t:"Fetch-Decode-Execute Loop",ph:0,c:[{y:"h3",x:"Core Loop"},{y:"code",x:"fetch opcode at PC → decode → execute → advance PC"},{y:"list",x:["Build 256-entry opcode dispatch table","Start with NOP ($EA) and illegal opcodes as no-ops","CPU ticks through memory, dispatches opcodes, PC advances correctly"]},{y:"h3",x:"Deliverable"},{y:"p",x:"CPU ticks through memory, dispatches opcodes, PC advances correctly."}],l:[["Opcode Matrix (all 256)","https://www.oxyron.de/html/opcodes02.html"],["NESDev — CPU Cycle Reference","https://www.nesdev.org/wiki/6502_cycle_times"]]},
+      4:{t:"Load/Store & Transfer",ph:1,c:[{y:"table",h:["Group","Opcodes"],r:[["Load","LDA, LDX, LDY"],["Store","STA, STX, STY"],["Transfer","TAX, TAY, TXA, TYA, TSX, TXS"]]},{y:"note",x:"Update N and Z flags on every load/transfer — except TXS which sets no flags."},{y:"h3",x:"Test"},{y:"p",x:"Write a sequence that loads, transfers, stores to RAM, and reads back."}],l:[["6502 Instruction Reference","https://www.masswerk.at/6502/6502_instruction_set.html"]]},
+      5:{t:"Arithmetic & Logic",ph:1,c:[{y:"table",h:["Group","Opcodes"],r:[["Arithmetic","ADC, SBC (no BCD)"],["Logic","AND, ORA, EOR, BIT"],["Compare","CMP, CPX, CPY"]]},{y:"warn",x:"V = (A ^ result) & (operand ^ result) & 0x80"},{y:"list",x:["$7F + $01 — positive overflow","$80 - $01 — negative overflow"]}],l:[["Overflow Flag Explained","https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html"]]},
+      6:{t:"Increment/Decrement & Shifts",ph:1,c:[{y:"table",h:["Group","Opcodes"],r:[["Inc/Dec Memory","INC, DEC"],["Inc/Dec Register","INX, INY, DEX, DEY"],["Shifts","ASL, LSR, ROL, ROR"]]},{y:"note",x:"Shifts have both Accumulator and Memory variants — don't forget both."}],l:[["6502 Instruction Set","https://www.masswerk.at/6502/6502_instruction_set.html"]]},
+      7:{t:"Branches & Jumps",ph:1,c:[{y:"table",h:["Group","Opcodes"],r:[["Branches","BCC, BCS, BEQ, BNE, BMI, BPL, BVC, BVS"],["Jumps","JMP (abs + indirect), JSR, RTS"]]},{y:"warn",x:"JMP ($xxFF) — page-boundary bug. Wraps within page, doesn't cross."},{y:"warn",x:"JSR pushes PC - 1; RTS pops and adds 1."}],l:[["JMP Bug — NESDev","https://www.nesdev.org/wiki/Errata#CPU"]]},
+      8:{t:"Stack & System",ph:1,c:[{y:"table",h:["Group","Opcodes"],r:[["Stack","PHA, PHP, PLA, PLP"],["System","BRK, RTI"],["Flags","SEC, CLC, SEI, CLI, SED, CLD, CLV"]]},{y:"warn",x:"PHP/BRK: bits 4+5 of pushed P are set. PLP: bit 5 always 1, bit 4 ignored."},{y:"p",x:"Full official opcode coverage — 56 instructions × addressing modes = 151 opcodes."}],l:[["Status Flags — NESDev","https://www.nesdev.org/wiki/Status_flags"]]},
+      9:{t:"Cycle Accuracy",ph:2,c:[{y:"list",x:["Each instruction has a base cycle count","+1 for page-boundary crosses","Build/import a 256-entry cycle count table"]},{y:"note",x:"PPU and APU are cycle-locked to the CPU — wrong counts = wrong frame timing."}],l:[["CPU Cycle Reference","https://www.nesdev.org/wiki/6502_cycle_times"]]},
+      10:{t:"Interrupts — NMI, IRQ, RESET",ph:2,c:[{y:"table",h:["Type","Vector","Behavior"],r:[["RESET","$FFFC–$FFFD","Load PC, set I, SP=$FD"],["NMI","$FFFA–$FFFB","Push PC+P (bit 4 clear), non-maskable"],["IRQ/BRK","$FFFE–$FFFF","Masked by I flag; BRK sets bit 4"]]},{y:"note",x:"Interrupts polled between instructions, not mid-instruction."}],l:[["CPU Interrupts","https://www.nesdev.org/wiki/CPU_interrupts"]]},
+      11:{t:"Run nestest.nes ★",ph:2,c:[{y:"h3",x:"★ CRITICAL MILESTONE ★"},{y:"p",x:"The single best validation checkpoint in the project."},{y:"list",x:["Load nestest.nes (automation mode at $C000)","Compare log: PC, A, X, Y, P, SP, cycles","Fix every discrepancy before moving on"]},{y:"warn",x:"Do NOT proceed until nestest passes with zero log diff."}],l:[["nestest ROM","https://www.nesdev.org/wiki/Emulator_tests"],["nestest golden log","https://www.qmtpro.com/~nes/misc/nestest.log"]]},
+      12:{t:"iNES ROM Loader",ph:3,c:[{y:"table",h:["Offset","Size","Content"],r:[["0–3","4B","Magic: NES + $1A"],["4","1B","PRG-ROM (×16KB)"],["5","1B","CHR-ROM (×8KB)"],["6","1B","Flags 6: mapper low, mirroring"],["7","1B","Flags 7: mapper high, NES 2.0"]]},{y:"h3",x:"Mapper 0 (NROM)"},{y:"list",x:["16KB: mirrored at $8000 and $C000","32KB: fills $8000–$FFFF"]}],l:[["iNES Format","https://www.nesdev.org/wiki/INES"],["NROM","https://www.nesdev.org/wiki/NROM"]]},
+      13:{t:"Minimal PPU Stub & DMA",ph:3,c:[{y:"list",x:["Stub $2000–$2007 reads/writes","$2002 bit 7 (vblank) — toggle so games don't spin"]},{y:"p",x:"$4014 write → 256-byte OAM DMA, costs 513/514 cycles."}],l:[["PPU Registers","https://www.nesdev.org/wiki/PPU_registers"]]},
+      14:{t:"Controller Input",ph:3,c:[{y:"list",x:["$4016/$4017 — strobe then read 8 times"]},{y:"table",h:["Read","Button"],r:[["1","A"],["2","B"],["3","Select"],["4","Start"],["5–8","D-pad"]]}],l:[["Controller Reading","https://www.nesdev.org/wiki/Controller_reading"]]},
+      15:{t:"Unofficial Opcodes",ph:3,c:[{y:"note",x:"Optional but recommended — many games use these."},{y:"table",h:["Op","Desc"],r:[["LAX","LDA+LDX"],["SAX","A & X → mem"],["DCP","DEC+CMP"],["ISB","INC+SBC"],["SLO","ASL+ORA"],["RLA","ROL+AND"],["SRE","LSR+EOR"],["RRA","ROR+ADC"]]}],l:[["Unofficial Opcodes","https://www.nesdev.org/wiki/CPU_unofficial_opcodes"]]},
+      16:{t:"Debugging Infrastructure",ph:3,c:[{y:"warn",x:"Not optional — build incrementally from Week 4."},{y:"list",x:["Step debugger + breakpoints","Disassembler","Memory viewer / hex dump","Cycle counter"]},{y:"table",h:["Lang","Gotcha"],r:[["Rust","wrapping_add/sub"],["C++","implicit int promotion"],["C#","byte promotes to int"],["Java","no unsigned — & 0xFF everywhere"],["TS","bitwise → 32-bit signed"]]}],l:[["Emulator Tests","https://www.nesdev.org/wiki/Emulator_tests"]]},
+    },
+  },
+  ppu: {
+    label: "PPU", chip: "Ricoh 2C02", subtitle: "Picture Processing Unit",
+    color: "green", btnClass: "track-btn--ppu", duration: "14 weeks",
+    desc: "Build the NES graphics engine — tile decoding, nametable rendering, scrolling, sprites, and cycle-accurate frame timing.",
+    milestone: { week: 14, text: "Week 14 — render real games (SMB, Zelda, Mega Man)" },
+    phases: [
+      { name: "PPU Foundations", color: "cyan", weeks: [1,2,3] },
+      { name: "Background Rendering", color: "green", weeks: [4,5,6,7] },
+      { name: "Sprites", color: "orange", weeks: [8,9,10,11] },
+      { name: "Timing & Polish", color: "magenta", weeks: [12,13,14] },
+    ],
+    refs: [
+      ["NESDev Wiki — PPU","https://www.nesdev.org/wiki/PPU"],
+      ["PPU Rendering","https://www.nesdev.org/wiki/PPU_rendering"],
+      ["PPU Scrolling","https://www.nesdev.org/wiki/PPU_scrolling"],
+      ["PPU Pattern Tables","https://www.nesdev.org/wiki/PPU_pattern_tables"],
+      ["PPU OAM","https://www.nesdev.org/wiki/PPU_OAM"],
+      ["PPU Test ROMs","https://www.nesdev.org/wiki/Emulator_tests"],
+    ],
+    weeks: {
+      1:{t:"PPU Architecture & VRAM Layout",ph:0,c:[{y:"note",x:"PPU has its own 16KB address space, separate from the CPU bus."},{y:"h3",x:"VRAM Layout"},{y:"table",h:["Range","Content"],r:[["$0000–$1FFF","Pattern tables (CHR-ROM/RAM)"],["$2000–$2FFF","Nametables (tile maps)"],["$3F00–$3F1F","Palettes (colors)"]]},{y:"h3",x:"Internal Registers"},{y:"list",x:["v — 15-bit current VRAM address","t — 15-bit temporary VRAM address","x — 3-bit fine X scroll","w — write toggle latch (first/second write)"]},{y:"h3",x:"Deliverable"},{y:"p",x:"PPU struct with registers, 16KB VRAM, read/write with mirroring."}],l:[["NESDev — PPU Memory Map","https://www.nesdev.org/wiki/PPU_memory_map"],["PPU Registers","https://www.nesdev.org/wiki/PPU_registers"]]},
+      2:{t:"CPU ↔ PPU Register Interface",ph:0,c:[{y:"h3",x:"Register Side Effects"},{y:"table",h:["Reg","Address","Key Behavior"],r:[["PPUCTRL","$2000","NMI enable, increment mode, sprite size"],["PPUMASK","$2001","Rendering enable, color emphasis"],["PPUSTATUS","$2002","Read clears vblank + resets w latch"],["PPUSCROLL","$2005","Double-write via w toggle"],["PPUADDR","$2006","Double-write via w toggle"],["PPUDATA","$2007","Auto-increment v by 1 or 32"]]},{y:"warn",x:"Open bus: reads from write-only registers return last value on PPU data bus."},{y:"h3",x:"Deliverable"},{y:"p",x:"All 8 registers behave correctly when accessed from CPU."}],l:[["PPU Registers","https://www.nesdev.org/wiki/PPU_registers"],["PPU Open Bus","https://www.nesdev.org/wiki/Open_bus_behavior"]]},
+      3:{t:"Nametable Mirroring",ph:0,c:[{y:"h3",x:"Mirroring Modes"},{y:"table",h:["Mode","Layout","Use Case"],r:[["Horizontal","$2000=$2400, $2800=$2C00","Vertical scrolling"],["Vertical","$2000=$2800, $2400=$2C00","Horizontal scrolling"],["Single-screen","All map to one","Mapper-controlled"],["Four-screen","4 independent","Extra VRAM on cart"]]},{y:"note",x:"Mirroring mode comes from iNES header flag 6 bit 0 (or mapper override)."},{y:"h3",x:"Deliverable"},{y:"p",x:"VRAM reads/writes through nametable space respect the mirroring mode."}],l:[["Nametable Mirroring","https://www.nesdev.org/wiki/Mirroring"]]},
+      4:{t:"Pattern Tables & Tile Decoding",ph:1,c:[{y:"h3",x:"Tile Format"},{y:"list",x:["8×8 tiles, 2 bits per pixel, stored as two bitplanes","Each tile = 16 bytes: 8 low plane + 8 high plane","Combine planes → 2-bit color index per pixel","2-bit tile index + 2-bit attribute = 4-bit palette index"]},{y:"h3",x:"Deliverable"},{y:"p",x:"Decode tile ID + palette → 8×8 pixel grid. Build a pattern table viewer."}],l:[["PPU Pattern Tables","https://www.nesdev.org/wiki/PPU_pattern_tables"],["PPU Palettes","https://www.nesdev.org/wiki/PPU_palettes"]]},
+      5:{t:"Nametable Rendering (Static BG)",ph:1,c:[{y:"h3",x:"Nametable Structure"},{y:"list",x:["32×30 tile grid = 960 bytes + 64-byte attribute table","Attribute: each byte covers 4×4 tiles, 2 bits per 2×2 quadrant","Fetch tile ID → fetch pattern → apply palette → output pixels"]},{y:"note",x:"Ignore scrolling for now — render nametable 0 as a static 256×240 image."},{y:"h3",x:"Deliverable"},{y:"p",x:"Display background of a Mapper 0 ROM (Donkey Kong title screen)."}],l:[["PPU Nametables","https://www.nesdev.org/wiki/PPU_nametables"],["PPU Attribute Tables","https://www.nesdev.org/wiki/PPU_attribute_tables"]]},
+      6:{t:"Scrolling — The Hard Part",ph:1,c:[{y:"list",x:["v register determines what to fetch at each pixel","Coarse X increments every 8 pixels, coarse Y at end of scanline","Fine X (x register) selects starting pixel within first tile","$2005 writes set scroll via t register, transferred to v at specific points","X overflow toggles nametable bit 10, Y overflow toggles bit 11"]},{y:"warn",x:"Read 'Loopy's scrolling doc' — the canonical reference for PPU scroll internals."},{y:"h3",x:"Deliverable"},{y:"p",x:"SMB world 1-1 scrolls right correctly."}],l:[["PPU Scrolling","https://www.nesdev.org/wiki/PPU_scrolling"],["Loopy's Registers","https://www.nesdev.org/wiki/PPU_scrolling#PPU_internal_registers"]]},
+      7:{t:"Fine Y Scroll & Split-Screen",ph:1,c:[{y:"list",x:["Fine Y = bits 12–14 of v, incremented each scanline","Fine Y overflow (reaches 8) → coarse Y increments, fine Y resets","Mid-frame $2006 writes enable split-screen (status bar + scrolling)"]},{y:"h3",x:"Test"},{y:"p",x:"Games with status bars (SMB score, Zelda HUD) render correctly."}],l:[["PPU Rendering","https://www.nesdev.org/wiki/PPU_rendering"]]},
+      8:{t:"OAM & Sprite Basics",ph:2,c:[{y:"h3",x:"OAM Format (4 bytes per sprite × 64)"},{y:"table",h:["Byte","Content"],r:[["0","Y position"],["1","Tile index"],["2","Attributes (palette, priority, flip H/V)"],["3","X position"]]},{y:"note",x:"8×16 mode: tile bit 0 selects pattern table. Top = index & $FE, bottom = index | $01."},{y:"h3",x:"Deliverable"},{y:"p",x:"Parse OAM, decode sprite tiles with H/V flip."}],l:[["PPU OAM","https://www.nesdev.org/wiki/PPU_OAM"]]},
+      9:{t:"Sprite Evaluation",ph:2,c:[{y:"list",x:["Evaluate which sprites appear on each scanline (max 8)","Secondary OAM: 32 bytes for current scanline's sprites","Walk all 64 entries, check Y range, copy first 8 matches"]},{y:"warn",x:"Sprite overflow flag ($2002 bit 5) has a hardware bug — incorrect indexing after 8 sprites found."},{y:"h3",x:"Deliverable"},{y:"p",x:"Correct per-scanline sprite list, overflow flag set with the bug."}],l:[["Sprite Evaluation","https://www.nesdev.org/wiki/PPU_sprite_evaluation"]]},
+      10:{t:"Sprite Rendering & Priority",ph:2,c:[{y:"list",x:["Render sprite pixels into scanline buffer, composite with BG","Priority bit: 0 = in front of BG, 1 = behind non-zero BG pixels"]},{y:"warn",x:"Sprite 0 hit ($2002 bit 6): non-transparent sprite 0 overlaps non-transparent BG. Many games use this for raster timing."},{y:"h3",x:"Test"},{y:"p",x:"SMB uses sprite 0 hit to split status bar from playfield."}],l:[["Sprite 0 Hit","https://www.nesdev.org/wiki/PPU_OAM#Sprite_0_hits"]]},
+      11:{t:"OAM DMA & Sprite Timing",ph:2,c:[{y:"list",x:["$4014 → 256-byte DMA to OAM (513/514 CPU cycles)","Sprite fetches during PPU cycles 257–320 per scanline","Dummy nametable fetches for unused sprite slots"]},{y:"h3",x:"Deliverable"},{y:"p",x:"Full sprite rendering — Mega Man, Castlevania, SMB characters render correctly."}],l:[["PPU OAM DMA","https://www.nesdev.org/wiki/PPU_OAM#DMA"]]},
+      12:{t:"Cycle-Accurate Frame Timing",ph:3,c:[{y:"h3",x:"PPU Timing (NTSC)"},{y:"table",h:["Scanlines","Purpose"],r:[["0–239","Visible rendering"],["240","Post-render (idle)"],["241–260","Vblank (NMI fires at 241 cycle 1)"],["261","Pre-render (clear flags, reload scrolling)"]]},{y:"list",x:["341 PPU cycles/scanline, 262 scanlines/frame","3 PPU cycles = 1 CPU cycle","Odd frame skip: cycle 340 skipped on odd frames with rendering enabled"]}],l:[["PPU Frame Timing","https://www.nesdev.org/wiki/PPU_rendering#Frame_timing"]]},
+      13:{t:"Background Fetch Pipeline",ph:3,c:[{y:"h3",x:"8-Cycle Tile Fetch"},{y:"table",h:["Cycles","Fetch"],r:[["1–2","Nametable byte"],["3–4","Attribute byte"],["5–6","Pattern low byte"],["7–8","Pattern high byte"]]},{y:"list",x:["Two tiles fetched ahead (shift register pipeline)","Cycles 321–336: prefetch first 2 tiles of next scanline"]}],l:[["PPU Rendering Details","https://www.nesdev.org/wiki/PPU_rendering"]]},
+      14:{t:"Full Validation ★",ph:3,c:[{y:"h3",x:"★ CRITICAL MILESTONE ★"},{y:"list",x:["PPU test ROMs: vbl_nmi_timing, sprite_hit_tests, sprite_overflow_tests","Visual: SMB, Donkey Kong, Zelda, Mega Man 2 — playable with correct graphics"]},{y:"h3",x:"Common Bugs"},{y:"table",h:["Symptom","Likely Cause"],r:[["Garbage tiles","Nametable mirroring or VRAM increment wrong"],["Sprites offset 1 line","Y position evaluated as Y+1"],["Flickering sprites","Sprite eval or priority logic"],["Scroll jitter","v/t register transfer timing off"]]}],l:[["PPU Test ROMs","https://www.nesdev.org/wiki/Emulator_tests"]]},
+    },
+  },
+  apu: {
+    label: "APU", chip: "Ricoh 2A03", subtitle: "Audio Processing Unit",
+    color: "orange", btnClass: "track-btn--apu", duration: "12 weeks",
+    desc: "Build the NES sound engine — pulse, triangle, noise, DMC channels with nonlinear mixing and hardware filters.",
+    milestone: { week: 12, text: "Week 12 — Mega Man 2 music plays correctly" },
+    phases: [
+      { name: "APU Foundations", color: "cyan", weeks: [1,2,3] },
+      { name: "Channels", color: "green", weeks: [4,5,6,7,8] },
+      { name: "DMC & Mixing", color: "orange", weeks: [9,10,11] },
+      { name: "Integration", color: "magenta", weeks: [12] },
+    ],
+    refs: [
+      ["NESDev Wiki — APU","https://www.nesdev.org/wiki/APU"],
+      ["APU Pulse","https://www.nesdev.org/wiki/APU_Pulse"],
+      ["APU Triangle","https://www.nesdev.org/wiki/APU_Triangle"],
+      ["APU Noise","https://www.nesdev.org/wiki/APU_Noise"],
+      ["APU DMC","https://www.nesdev.org/wiki/APU_DMC"],
+      ["APU Mixer","https://www.nesdev.org/wiki/APU_Mixer"],
+      ["APU Frame Counter","https://www.nesdev.org/wiki/APU_Frame_Counter"],
+      ["APU Test ROMs","https://www.nesdev.org/wiki/Emulator_tests"],
+    ],
+    weeks: {
+      1:{t:"APU Architecture & Register Map",ph:0,c:[{y:"note",x:"APU is integrated into the 2A03 — not a separate chip."},{y:"h3",x:"5 Channels"},{y:"table",h:["Channel","Type","Registers"],r:[["Pulse 1","Square wave","$4000–$4003"],["Pulse 2","Square wave","$4004–$4007"],["Triangle","Triangle wave","$4008–$400B"],["Noise","LFSR noise","$400C–$400F"],["DMC","1-bit delta samples","$4010–$4013"]]},{y:"list",x:["$4015 read: length counter status + IRQ flags","$4015 write: enable/disable channels","$4017: frame counter mode"]},{y:"h3",x:"Deliverable"},{y:"p",x:"APU struct, per-channel structs, register dispatch for $4000–$4017."}],l:[["NESDev — APU","https://www.nesdev.org/wiki/APU"],["APU Registers","https://www.nesdev.org/wiki/APU#Registers"]]},
+      2:{t:"Audio Output Pipeline",ph:0,c:[{y:"h3",x:"Setup"},{y:"list",x:["Pick backend: SDL2, PortAudio, Web Audio, WASAPI","Target: 44100 Hz, ~735 samples/frame (60 fps NTSC)","APU runs at CPU clock (1.789773 MHz) — downsample to 44100","Ring buffer between APU and audio callback"]},{y:"note",x:"Simple: sample mixer output every N cycles. Better: accumulate + average (box filter) to reduce aliasing."},{y:"h3",x:"Deliverable"},{y:"p",x:"Audio backend plays a constant tone — confirm pipeline works before building channels."}],l:[["APU Mixer","https://www.nesdev.org/wiki/APU_Mixer"]]},
+      3:{t:"The Frame Counter",ph:0,c:[{y:"h3",x:"Two Modes ($4017 bit 7)"},{y:"table",h:["Mode","Steps","IRQ"],r:[["4-step (bit 7=0)","Quarter/half at ~240 Hz","Yes"],["5-step (bit 7=1)","Quarter/half + extra half","No"]]},{y:"list",x:["Quarter frame: envelope + triangle linear counter","Half frame: length counters + sweep units","$4017 bit 6: inhibit frame IRQ"]},{y:"h3",x:"Deliverable"},{y:"p",x:"Frame counter fires quarter/half frame callbacks at correct intervals."}],l:[["APU Frame Counter","https://www.nesdev.org/wiki/APU_Frame_Counter"]]},
+      4:{t:"Pulse Channels",ph:1,c:[{y:"h3",x:"Components"},{y:"list",x:["Timer: 11-bit, ticks every 2 CPU cycles","Duty cycle: 4 waveforms (12.5%, 25%, 50%, 75%)","Output: 0 or envelope volume per duty position","Freq = CPU_CLOCK / (16 × (period + 1))"]},{y:"note",x:"Muted if period < 8 or sweep target > $7FF."},{y:"h3",x:"Deliverable"},{y:"p",x:"Pulse 1 plays recognizable tones — test with SMB title screen."}],l:[["APU Pulse","https://www.nesdev.org/wiki/APU_Pulse"]]},
+      5:{t:"Envelope & Length Counter",ph:1,c:[{y:"h3",x:"Envelope (Pulse + Noise)"},{y:"list",x:["Divider + decay counter (0–15), clocked every quarter frame","Loop flag: decay wraps 0 → 15 (sustain)","Constant volume flag: output = register directly"]},{y:"h3",x:"Length Counter"},{y:"list",x:["32-entry lookup table indexed by register bits 3–7","Decremented every half frame (unless halt flag)","Channel silenced when counter = 0"]},{y:"h3",x:"Deliverable"},{y:"p",x:"Notes have correct attack/sustain/release, don't play forever."}],l:[["APU Envelope","https://www.nesdev.org/wiki/APU_Envelope"],["Length Counter Table","https://www.nesdev.org/wiki/APU_Length_Counter"]]},
+      6:{t:"Sweep Unit (Pulse Only)",ph:1,c:[{y:"list",x:["Modifies pulse period for pitch bends","new_period = period + (period >> shift)","Negate: Pulse 1 = ones' complement, Pulse 2 = twos' complement","Mutes if target > $7FF (even if sweep disabled)"]},{y:"warn",x:"The Pulse 1 vs Pulse 2 negate difference catches everyone."},{y:"h3",x:"Deliverable"},{y:"p",x:"Sweep audible — SMB coin sound, power-up sound."}],l:[["APU Sweep","https://www.nesdev.org/wiki/APU_Sweep"]]},
+      7:{t:"Triangle Channel",ph:1,c:[{y:"list",x:["No envelope — on/off only","32-step sequence: 15,14...1,0,0,1...14,15","Linear counter: 7-bit, clocked every quarter frame","Timer ticks every CPU cycle (not every 2 like pulse)","Freq = CPU_CLOCK / (32 × (period + 1))"]},{y:"note",x:"Period < 2 = ultrasonic. Consider muting to avoid aliasing."},{y:"h3",x:"Deliverable"},{y:"p",x:"Bass lines and melody audible (triangle carries melody in most NES games)."}],l:[["APU Triangle","https://www.nesdev.org/wiki/APU_Triangle"]]},
+      8:{t:"Noise Channel",ph:1,c:[{y:"h3",x:"LFSR (15-bit)"},{y:"list",x:["Feedback: bit 0 XOR bit 1 (normal) or bit 0 XOR bit 6 (metallic)","Mode bit ($400E.7): 0 = 32767-step white noise, 1 = 93-step tonal","Period: 4-bit index into 16-entry lookup table","Has envelope + length counter (same as pulse)"]},{y:"h3",x:"Deliverable"},{y:"p",x:"Percussion sounds correct — hi-hats, snare."}],l:[["APU Noise","https://www.nesdev.org/wiki/APU_Noise"]]},
+      9:{t:"DMC Channel",ph:2,c:[{y:"h3",x:"Delta Modulation"},{y:"list",x:["Plays 1-bit delta-encoded samples from ROM","Address: $C000 + ($4012 × 64), length: ($4013 × 16) + 1","Each byte = 8 deltas: output ±2 per bit, clamped 0–127","Period: 4-bit index into 16-entry rate table"]},{y:"warn",x:"DMC DMA steals 1–4 CPU cycles per byte fetch — causes subtle timing issues."},{y:"list",x:["Loop flag: restart sample on finish","IRQ flag: fire IRQ on finish"]}],l:[["APU DMC","https://www.nesdev.org/wiki/APU_DMC"]]},
+      10:{t:"Mixer — Nonlinear DAC",ph:2,c:[{y:"h3",x:"Mixing Formula"},{y:"code",x:"pulse_out = 95.88 / ((8128 / (p1 + p2)) + 100)\ntnd_out = 159.79 / ((1 / (tri/8227 + noise/12241 + dmc/22638)) + 100)\noutput = pulse_out + tnd_out"},{y:"note",x:"NOT a simple linear sum. Precompute lookup tables for speed."},{y:"h3",x:"Deliverable"},{y:"p",x:"Music sounds balanced — correct relative volume between channels."}],l:[["APU Mixer Formulas","https://www.nesdev.org/wiki/APU_Mixer"]]},
+      11:{t:"Filtering & Output Quality",ph:2,c:[{y:"h3",x:"Hardware Filters"},{y:"list",x:["High-pass ~90 Hz: y[n] = 0.996039 × y[n-1] + x[n] - x[n-1]","Low-pass ~14 kHz: y[n] = 0.815686 × y[n-1] + 0.184314 × x[n]","Apply after mixing, before audio output"]},{y:"note",x:"Also consider anti-alias filtering before downsampling to 44.1 kHz."},{y:"h3",x:"Deliverable"},{y:"p",x:"Clean audio, no pops/clicks on channel toggle, no DC offset drift."}],l:[["APU Mixer — Filtering","https://www.nesdev.org/wiki/APU_Mixer#Emulation"]]},
+      12:{t:"Full Integration ★",ph:3,c:[{y:"h3",x:"★ CRITICAL MILESTONE ★"},{y:"list",x:["Wire $4000–$4017 to CPU bus","Frame counter IRQ + DMC IRQ → CPU IRQ line","Test ROMs: apu_test (blargg), apu_mixer, dmc_dma_during_read"]},{y:"h3",x:"Game Validation"},{y:"table",h:["Game","Tests"],r:[["SMB","Coin sweep, jump pulse, underground triangle"],["Mega Man 2","Complex multi-channel — best stress test"],["Castlevania","Percussion-heavy, noise channel"],["Zelda","DMC samples + full score"]]},{y:"h3",x:"Common Bugs"},{y:"table",h:["Symptom","Cause"],r:[["Missing notes","Length counter or enable flags wrong"],["Wrong pitch","Period off-by-one, or pulse÷2 vs triangle÷1"],["Buzzing/clicks","DC offset (missing high-pass) or buffer underrun"],["Metallic noise wrong","LFSR feedback tap in wrong position"]]}],l:[["APU Test ROMs","https://www.nesdev.org/wiki/Emulator_tests"],["NESDev Forum","https://forums.nesdev.org/"]]},
+    },
+  },
 };
 
 /* ─── Helpers ─── */
@@ -369,82 +269,111 @@ function block(b) {
     case "note": return `<div class="block-note">ℹ ${e(b.x)}</div>`;
     case "warn": return `<div class="block-warn">⚠ ${e(b.x)}</div>`;
     case "list": return `<ul class="block-list">${b.x.map(i=>`<li>${e(i)}</li>`).join("")}</ul>`;
-    case "table": return `<div class="block-table"><table>
-      <thead><tr>${b.h.map(h=>`<th>${e(h)}</th>`).join("")}</tr></thead>
-      <tbody>${b.r.map(r=>`<tr>${r.map(c=>`<td>${e(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    case "table": return `<div class="block-table"><table><thead><tr>${b.h.map(h=>`<th>${e(h)}</th>`).join("")}</tr></thead><tbody>${b.r.map(r=>`<tr>${r.map(c=>`<td>${e(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
   }
   return "";
 }
 
 function links(arr) {
   if (!arr?.length) return "";
-  return `<div class="resources-box"><h3>RESOURCES</h3>
-    ${arr.map(([label,url])=>`<a class="resource-link" href="${url}" target="_blank" rel="noopener noreferrer"><span class="dim">&gt; </span>${e(label)} <span class="arrow">↗</span></a>`).join("")}</div>`;
+  return `<div class="resources-box"><h3>RESOURCES</h3>${arr.map(([l,u])=>`<a class="resource-link" href="${u}" target="_blank" rel="noopener noreferrer"><span class="dim">&gt; </span>${e(l)} <span style="color:var(--text-dim);font-size:8px">↗</span></a>`).join("")}</div>`;
 }
 
-/* ─── Stamp home page ─── */
-const REFS = [
-  ["NESDev Wiki (CPU)","https://www.nesdev.org/wiki/CPU"],
-  ["6502 Instruction Set","https://www.masswerk.at/6502/6502_instruction_set.html"],
-  ["Emulator Tests","https://www.nesdev.org/wiki/Emulator_tests"],
-  ["Opcode Matrix (all 256)","https://www.oxyron.de/html/opcodes02.html"],
-  ["Easy 6502 Interactive","https://skilldrick.github.io/easy6502/"],
-];
-
-document.getElementById("home").innerHTML = `
+/* ─── Stamp landing page ─── */
+document.getElementById("landing").innerHTML = `
   <div class="hero">
     <div class="subtitle">DEVELOPMENT BOOTCAMP</div>
-    <h1>RICOH 2A03</h1>
-    <div class="tagline">CPU EMULATOR</div>
-    <div class="meta">16 WEEKS · 1 HOUR/WEEK · C++ / C# / JAVA / RUST / TS</div>
+    <h1>NES EMULATOR</h1>
+    <div class="tagline">CPU · PPU · APU</div>
+    <div class="meta">1 HOUR/WEEK · C++ / C# / JAVA / RUST / TS</div>
   </div>
   <div class="summary">
-    Build a fully functional Ricoh 2A03 CPU — the MOS 6502 core (minus BCD) that powered the NES.
-    From registers to nestest, from ROM loading to controller input.
-    <br><br>
-    <span style="color:var(--yellow)">★ KEY MILESTONE:</span>
-    <span style="color:var(--orange)">Week 11 — pass nestest.nes</span>
+    Three progressive tracks to build a complete NES emulator from scratch.
+    Start with the CPU, then add graphics (PPU) and sound (APU).
   </div>
-  ${PHASES.map((ph,i) => `
-    <div style="margin-bottom:20px">
-      <div class="phase-heading" style="color:${cv(ph.color)}">PHASE ${i+1}: ${ph.name}</div>
-      <div class="phase-grid">
-        ${ph.weeks.map(n => `<a href="#week-${n}" class="week-card" style="--card-color:${cv(ph.color)}">
-          <div class="wk-num">WEEK ${n}</div>
-          <div class="wk-title">${e(W[n].t)}${n===11?' <span style="color:var(--yellow)">★</span>':""}</div>
-        </a>`).join("")}
-      </div>
-    </div>`).join("")}
-  <div class="resources-box" style="margin-top:8px">
-    <h3>KEY REFERENCES</h3>
-    ${REFS.map(([l,u])=>`<a class="resource-link" href="${u}" target="_blank" rel="noopener noreferrer"><span class="dim">&gt; </span>${e(l)}</a>`).join("")}
+  <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:32px">
+    <a href="#cpu-home" class="track-btn track-btn--cpu">► CPU — 16 weeks</a>
+    <a href="#ppu-home" class="track-btn track-btn--ppu">► PPU — 14 weeks</a>
+    <a href="#apu-home" class="track-btn track-btn--apu">► APU — 12 weeks</a>
   </div>
-  <div class="footer">PRESS START <span class="blink">▌</span></div>`;
+  <div style="font-family:var(--pixel);font-size:8px;color:var(--text-dim);text-align:center;line-height:2">
+    SELECT YOUR TRACK <span class="blink">▌</span>
+  </div>`;
 
-/* ─── Stamp week pages ─── */
+/* ─── Stamp each track ─── */
 const app = document.getElementById("app");
-for (let n = 1; n <= 16; n++) {
-  const w = W[n], ph = PHASES[w.ph - 1], c = cv(ph.color);
-  const sec = document.createElement("section");
-  sec.id = `week-${n}`;
-  sec.className = "page week-page";
-  sec.innerHTML = `
+
+for (const [key, T] of Object.entries(TRACKS)) {
+  // Track home page
+  const home = document.createElement("section");
+  home.id = `${key}-home`;
+  home.className = "page";
+  const phasesHTML = T.phases.map((ph, i) => {
+    const cards = ph.weeks.map(n => {
+      const w = T.weeks[n];
+      return `<a href="#${key}-w${n}" class="week-card" style="--card-color:${cv(ph.color)}">
+        <div class="wk-num">WEEK ${n}</div>
+        <div class="wk-title">${e(w.t)}</div>
+      </a>`;
+    }).join("");
+    return `<div style="margin-bottom:20px">
+      <div class="phase-heading" style="color:${cv(ph.color)}">PHASE ${i+1}: ${ph.name}</div>
+      <div class="phase-grid">${cards}</div>
+    </div>`;
+  }).join("");
+
+  home.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:20px">
-      <a href="#" class="nes-btn">← Back</a>
-      <div style="display:flex;gap:8px">
-        ${n>1  ? `<a href="#week-${n-1}" class="nes-btn">◄ W${n-1}</a>` : ""}
-        ${n<16 ? `<a href="#week-${n+1}" class="nes-btn">W${n+1} ►</a>` : ""}
+      <a href="#" class="nes-btn">← Tracks</a>
+    </div>
+    <div class="hero" style="border-color:${cv(T.color)}">
+      <div class="subtitle" style="color:${cv(T.color)}">${T.chip}</div>
+      <h1>${T.label}</h1>
+      <div class="tagline">${T.subtitle}</div>
+      <div class="meta">${T.duration.toUpperCase()} · 1 HOUR/WEEK</div>
+    </div>
+    <div class="summary">
+      ${e(T.desc)}<br><br>
+      <span style="color:var(--yellow)">★ KEY MILESTONE:</span>
+      <span style="color:var(--orange)">${e(T.milestone.text)}</span>
+    </div>
+    ${phasesHTML}
+    <div class="resources-box" style="margin-top:8px"><h3>KEY REFERENCES</h3>
+      ${T.refs.map(([l,u])=>`<a class="resource-link" href="${u}" target="_blank" rel="noopener noreferrer"><span class="dim">&gt; </span>${e(l)}</a>`).join("")}
+    </div>`;
+  app.appendChild(home);
+
+  // Week pages
+  const weekNums = Object.keys(T.weeks).map(Number).sort((a,b) => a-b);
+  for (const n of weekNums) {
+    const w = T.weeks[n];
+    const ph = T.phases[w.ph];
+    const c = cv(ph.color);
+    const idx = weekNums.indexOf(n);
+    const prev = idx > 0 ? weekNums[idx-1] : null;
+    const next = idx < weekNums.length-1 ? weekNums[idx+1] : null;
+
+    const sec = document.createElement("section");
+    sec.id = `${key}-w${n}`;
+    sec.className = "page";
+    sec.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+        <a href="#${key}-home" class="nes-btn">← ${T.label}</a>
+        <div style="display:flex;gap:8px">
+          ${prev !== null ? `<a href="#${key}-w${prev}" class="nes-btn">◄ W${prev}</a>` : ""}
+          ${next !== null ? `<a href="#${key}-w${next}" class="nes-btn">W${next} ►</a>` : ""}
+        </div>
       </div>
-    </div>
-    <div class="week-header" style="--card-color:${c}">
-      <div class="phase-label">PHASE ${w.ph}: ${ph.name}</div>
-      <h2>WEEK ${n}: ${e(w.t)}</h2>
-    </div>
-    <div style="background:var(--panel);border:3px solid var(--border-dark);padding:20px">
-      ${w.c.map(block).join("")}
-    </div>
-    ${links(w.l)}`;
-  app.appendChild(sec);
+      <div class="week-header" style="--card-color:${c}">
+        <div class="phase-label">PHASE ${w.ph+1}: ${ph.name}</div>
+        <h2>WEEK ${n}: ${e(w.t)}</h2>
+      </div>
+      <div style="background:var(--panel);border:3px solid var(--border-dark);padding:20px">
+        ${w.c.map(block).join("")}
+      </div>
+      ${links(w.l)}`;
+    app.appendChild(sec);
+  }
 }
 </script>
 </body>
